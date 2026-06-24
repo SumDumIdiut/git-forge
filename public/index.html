@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Forge</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-core.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+</head>
+<body>
+
+<!-- ── Auth Screen ──────────────────────────────────────────────────────────── -->
+<div id="auth-screen" class="auth-screen" style="display:none">
+  <div class="auth-grid"></div>
+  <div class="auth-glow"></div>
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2c0 0 .5 3.5-1 6C11 9.5 10 10 9 9.5 9 12 10 14 12 15c-3 1-5 3.5-5 6h10c0-2.5-2-5-5-6 2-1 3-3 3-5.5-.5.5-1 .8-1.5.5C14.5 8 15 5 13 2z"/></svg>
+      Forge
+    </div>
+    <div id="auth-setup-section" style="display:none">
+      <h2 class="auth-heading">Set up your Forge</h2>
+      <p class="auth-sub">Create your admin account to get started.</p>
+      <div id="auth-error" class="auth-error" style="display:none"></div>
+      <div class="auth-field"><label>Username</label><input id="setup-username" type="text" placeholder="your-username" autocomplete="username" spellcheck="false"></div>
+      <div class="auth-field"><label>Password</label><input id="setup-password" type="password" placeholder="min 6 characters" autocomplete="new-password"></div>
+      <button class="auth-btn" id="setup-btn" onclick="doSetup()">Create account</button>
+      <div style="text-align:center;margin-top:14px">
+        <button onclick="showAuthScreen('login')" style="background:none;border:none;color:var(--text-3);font-size:12px;cursor:pointer;font-family:inherit;padding:4px 8px;border-radius:5px">← Back to sign in</button>
+      </div>
+    </div>
+    <div id="auth-login-section" style="display:none">
+      <h2 class="auth-heading">Welcome back</h2>
+      <p class="auth-sub">Sign in to your Forge instance.</p>
+      <div id="auth-error" class="auth-error" style="display:none"></div>
+      <div class="auth-field"><label>Username</label><input id="login-username" type="text" placeholder="username" autocomplete="username" spellcheck="false"></div>
+      <div class="auth-field"><label>Password</label><input id="login-password" type="password" placeholder="password" autocomplete="current-password"></div>
+      <button class="auth-btn" id="login-btn" onclick="doLogin()">Sign in</button>
+      <div style="text-align:center;margin-top:14px;display:flex;flex-direction:column;gap:6px">
+        <button onclick="showAuthScreen('setup')" style="background:none;border:none;color:var(--text-2);font-size:13px;cursor:pointer;font-family:inherit;padding:4px 8px;border-radius:5px">No account yet? Set up Forge →</button>
+        <button onclick="doSkipAuth()" style="background:none;border:none;color:var(--text-3);font-size:12px;cursor:pointer;font-family:inherit;padding:4px 8px;border-radius:5px">Continue without account</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Main App ─────────────────────────────────────────────────────────────── -->
+<div id="main-app" style="display:none">
+
+  <header class="header">
+    <div class="logo" onclick="navigate('/')">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2c0 0 .5 3.5-1 6C11 9.5 10 10 9 9.5 9 12 10 14 12 15c-3 1-5 3.5-5 6h10c0-2.5-2-5-5-6 2-1 3-3 3-5.5-.5.5-1 .8-1.5.5C14.5 8 15 5 13 2z"/></svg>
+      Forge
+    </div>
+    <div class="header-center">
+      <div class="search-wrap" id="search-wrap">
+        <svg class="search-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M10.68 11.74a6 6 0 0 1-7.922-8.982 6 6 0 0 1 8.982 7.922l3.04 3.04a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215ZM11.5 7a4.499 4.499 0 1 0-8.997 0A4.499 4.499 0 0 0 11.5 7Z"/></svg>
+        <input id="search-input" class="search-input" placeholder="Type / to search" autocomplete="off" spellcheck="false" oninput="onSearchInput(event)" onkeydown="onSearchKey(event)" onfocus="onSearchFocus()">
+        <kbd class="search-kbd" id="search-kbd">/</kbd>
+        <div class="search-dropdown" id="search-dropdown" style="display:none"></div>
+      </div>
+    </div>
+    <div class="sync-indicator" id="sync-indicator">
+      <div class="sync-dot"></div>
+      <span id="sync-indicator-text">Syncing…</span>
+    </div>
+    <div class="header-right">
+      <button class="btn-icon" onclick="toggleTerminal()" title="Terminal">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M0 3.75C0 2.784.784 2 1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25Zm1.75-.25a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-8.5a.25.25 0 0 0-.25-.25ZM3.5 6.25a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75Zm.75 2.25h4a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1 0-1.5Zm2.78-4.53 3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.749.749 0 0 1-1.06-1.06L8.44 8 5.97 5.53a.749.749 0 0 1 1.06-1.06Z"/></svg>
+      </button>
+      <button class="btn-icon" onclick="openModal('clone-url')" title="Clone from URL">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="m7.775 3.275 1.25-1.25a3.5 3.5 0 1 1 4.95 4.95l-2.5 2.5a3.5 3.5 0 0 1-4.95 0 .751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018 2 2 0 0 0 2.83 0l2.5-2.5a2 2 0 0 0-2.83-2.83l-1.25 1.25a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042Zm-4.69 9.64a2 2 0 0 0 2.83 0l1.25-1.25a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042l-1.25 1.25a3.5 3.5 0 1 1-4.95-4.95l2.5-2.5a3.5 3.5 0 0 1 4.95 0 .751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018 2 2 0 0 0-2.83 0l-2.5 2.5a2 2 0 0 0 0 2.83Z"/></svg>
+      </button>
+      <button class="btn-icon" id="notifications-btn" title="Notifications" onclick="navigate('/profile')">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 16a2 2 0 0 0 1.985-1.75c.017-.137-.097-.25-.235-.25h-3.5c-.138 0-.252.113-.235.25A2 2 0 0 0 8 16ZM3 5a5 5 0 0 1 10 0v2.947c0 .05.015.098.042.139l1.703 2.555A1.519 1.519 0 0 1 13.482 13H2.518a1.516 1.516 0 0 1-1.263-2.36l1.703-2.554A.255.255 0 0 0 3 7.947Zm5-3.5A3.5 3.5 0 0 0 4.5 5v2.947c0 .346-.102.683-.294.97l-1.703 2.556a.017.017 0 0 0-.003.01l.001.006c0 .002.002.004.004.006l.006.004.007.001h10.964l.007-.001.006-.004.004-.006.001-.007a.017.017 0 0 0-.003-.01l-1.703-2.554a1.745 1.745 0 0 1-.294-.97V5A3.5 3.5 0 0 0 8 1.5Z"/></svg>
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="openModal('create-repo')">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor"><path d="M7.75 2a.75.75 0 0 1 .75.75V7h4.25a.75.75 0 0 1 0 1.5H8.5v4.25a.75.75 0 0 1-1.5 0V8.5H2.75a.75.75 0 0 1 0-1.5H7V2.75A.75.75 0 0 1 7.75 2Z"/></svg>
+        New
+      </button>
+      <div class="user-menu" id="user-menu">
+        <button class="user-avatar-btn" onclick="toggleUserMenu()" id="user-avatar-btn">
+          <img id="user-avatar-img" class="gh-av gh-av-32" src="" alt="" style="display:none" onerror="this.style.display='none';document.getElementById('user-avatar-circle').style.display='flex'">
+          <div class="user-avatar-circle" id="user-avatar-circle"></div>
+          <svg class="user-avatar-caret" width="10" height="10" viewBox="0 0 16 16" fill="currentColor"><path d="M4.427 7.427l3.396 3.396a.25.25 0 0 0 .354 0l3.396-3.396A.25.25 0 0 0 11.396 7H4.604a.25.25 0 0 0-.177.427Z"/></svg>
+        </button>
+        <div class="user-menu-dropdown" id="user-menu-dropdown">
+          <div class="user-menu-header">Signed in as<strong id="user-menu-name"></strong></div>
+          <hr class="user-menu-divider">
+          <button class="user-menu-item" onclick="navigate('/');closeUserMenu()">Your repositories</button>
+          <hr class="user-menu-divider">
+          <button class="user-menu-item" onclick="navigate('/settings');closeUserMenu()">Settings</button>
+          <hr class="user-menu-divider">
+          <button class="user-menu-item" onclick="doLogout()">Sign out</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div id="app"></div>
+
+  <!-- ── Terminal Panel ────────────────────────────────────────────────────── -->
+  <div id="terminal-panel" class="terminal-panel collapsed">
+    <div class="terminal-titlebar" onclick="toggleTerminal()">
+      <span class="terminal-title">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M0 3.75C0 2.784.784 2 1.75 2h12.5c.966 0 1.75.784 1.75 1.75v8.5A1.75 1.75 0 0 1 14.25 14H1.75A1.75 1.75 0 0 1 0 12.25Zm1.75-.25a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-8.5a.25.25 0 0 0-.25-.25ZM3.5 6.25a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75Zm.75 2.25h4a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1 0-1.5Zm2.78-4.53 3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.749.749 0 0 1-1.06-1.06L8.44 8 5.97 5.53a.749.749 0 0 1 1.06-1.06Z"/></svg>
+        Git Terminal <span id="terminal-ctx" class="terminal-ctx"></span>
+      </span>
+      <div class="terminal-actions" onclick="event.stopPropagation()">
+        <button onclick="clearTerminal()">Clear</button>
+        <button onclick="toggleTerminal()" id="terminal-toggle-btn">▼</button>
+      </div>
+    </div>
+    <div class="terminal-body" id="terminal-body">
+      <div class="terminal-output" id="terminal-output">
+        <div class="term-line term-dim">── Forge Git Terminal ── git commands only ──</div>
+      </div>
+      <div class="terminal-input-row">
+        <span class="terminal-prompt">git&nbsp;</span>
+        <input id="terminal-input" class="terminal-input" placeholder="push origin main" spellcheck="false" autocomplete="off">
+      </div>
+    </div>
+  </div>
+
+</div><!-- /main-app -->
+
+<!-- ════════ MODALS ════════ -->
+
+<!-- Create Repo -->
+<div class="overlay" id="modal-create-repo">
+  <div class="modal">
+    <div class="modal-title">New repository<button class="modal-close" onclick="closeModal('create-repo')">×</button></div>
+    <div id="create-repo-error" class="alert alert-error" style="display:none"></div>
+    <div class="form-group"><label class="form-label">Name <span class="form-sub">*</span></label><input class="form-input" id="repo-name" placeholder="my-project" autocomplete="off" spellcheck="false"></div>
+    <div class="form-group"><label class="form-label">Description <span class="form-sub">Optional</span></label><input class="form-input" id="repo-desc" placeholder="Short description"></div>
+    <hr class="form-divider">
+    <label class="check-row"><input type="checkbox" id="repo-readme" checked><span class="check-label">Initialize with a README<small>Creates an initial commit so you can clone immediately.</small></span></label>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('create-repo')">Cancel</button><button class="btn btn-primary" id="create-repo-btn" onclick="createRepo()">Create repository</button></div>
+  </div>
+</div>
+
+<!-- Create File -->
+<div class="overlay" id="modal-create-file">
+  <div class="modal">
+    <div class="modal-title"><span id="create-file-title">New file</span><button class="modal-close" onclick="closeModal('create-file')">×</button></div>
+    <div id="create-file-error" class="alert alert-error" style="display:none"></div>
+    <div class="form-group"><label class="form-label">File path <span class="form-sub">*</span></label><input class="form-input form-mono" id="file-path" placeholder="path/to/file.txt" spellcheck="false"></div>
+    <div class="form-group"><label class="form-label">Commit message</label><input class="form-input" id="file-commit-msg" placeholder="Add file"></div>
+    <div class="form-group"><label class="form-label">Content</label><textarea class="form-textarea form-mono" id="file-content" rows="10" placeholder="File contents..."></textarea></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('create-file')">Cancel</button><button class="btn btn-primary" id="create-file-btn" onclick="createFile()">Commit file</button></div>
+  </div>
+</div>
+
+<!-- Delete Repo -->
+<div class="overlay" id="modal-delete-repo">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Delete repository<button class="modal-close" onclick="closeModal('delete-repo')">×</button></div>
+    <p style="font-size:14px;color:var(--text-2);margin-bottom:16px">Delete <strong id="delete-repo-name" style="color:var(--text)"></strong>? This action <strong style="color:var(--red)">cannot be undone</strong>.</p>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('delete-repo')">Cancel</button><button class="btn btn-danger" id="delete-repo-btn" onclick="deleteRepo()">Delete</button></div>
+  </div>
+</div>
+
+<!-- Push / Pull -->
+<div class="overlay" id="modal-push-pull">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title"><span id="push-pull-title">Push</span><button class="modal-close" onclick="closeModal('push-pull')">×</button></div>
+    <div class="form-group"><label class="form-label">Remote</label><input class="form-input" id="pp-remote" placeholder="origin" value="origin" spellcheck="false"></div>
+    <div class="form-group"><label class="form-label">Branch</label><input class="form-input" id="pp-branch" placeholder="main" spellcheck="false"></div>
+    <div id="push-extra" style="display:none"><label class="check-row" style="margin-bottom:0"><input type="checkbox" id="pp-force"><span class="check-label" style="color:var(--red)">Force push (--force)<small style="color:var(--text-2)">Rewrites remote history.</small></span></label></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('push-pull')">Cancel</button><button class="btn btn-primary" id="push-pull-btn" onclick="executePushPull()">Run</button></div>
+  </div>
+</div>
+
+<!-- Remotes -->
+<div class="overlay" id="modal-remotes">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-title">Remotes<button class="modal-close" onclick="closeModal('remotes')">×</button></div>
+    <div id="remotes-list" style="margin-bottom:20px"></div>
+    <div style="border-top:1px solid var(--border);padding-top:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">Add / update remote</div>
+      <div id="remotes-error" class="alert alert-error" style="display:none"></div>
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px;margin-bottom:10px">
+        <input class="form-input" id="remote-name-input" placeholder="origin" spellcheck="false">
+        <input class="form-input" id="remote-url-input" placeholder="https://github.com/user/repo.git" spellcheck="false">
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="saveRemote()">Save remote</button>
+    </div>
+  </div>
+</div>
+
+<!-- Clone from URL -->
+<div class="overlay" id="modal-clone-url">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-title">Clone from URL<button class="modal-close" onclick="closeModal('clone-url')">×</button></div>
+    <div id="clone-error" class="alert alert-error" style="display:none"></div>
+    <div class="form-group"><label class="form-label">Repository URL</label><input class="form-input form-mono" id="clone-url-input" placeholder="https://github.com/user/repo.git" spellcheck="false"></div>
+    <div class="form-group"><label class="form-label">Name <span class="form-sub">Defaults to repo name</span></label><input class="form-input" id="clone-name-input" placeholder="auto-detected" spellcheck="false"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('clone-url')">Cancel</button><button class="btn btn-primary" id="clone-btn" onclick="doClone()">Clone</button></div>
+  </div>
+</div>
+
+<!-- Create Issue -->
+<div class="overlay" id="modal-create-issue">
+  <div class="modal">
+    <div class="modal-title"><span id="issue-modal-title">New issue</span><button class="modal-close" onclick="closeModal('create-issue')">×</button></div>
+    <div id="create-issue-error" class="alert alert-error" style="display:none"></div>
+    <div class="form-group"><label class="form-label">Title <span class="form-sub">*</span></label><input class="form-input" id="issue-title" placeholder="Short, descriptive title" spellcheck="false"></div>
+    <div class="form-group"><label class="form-label">Labels <span class="form-sub">comma-separated</span></label><input class="form-input" id="issue-labels" placeholder="bug, enhancement, help wanted"></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="issue-body" rows="6" placeholder="Describe the issue..."></textarea></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('create-issue')">Cancel</button><button class="btn btn-primary" id="create-issue-btn" onclick="submitIssue()">Submit issue</button></div>
+  </div>
+</div>
+
+<!-- Create Branch -->
+<div class="overlay" id="modal-create-branch">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title">New branch<button class="modal-close" onclick="closeModal('create-branch')">×</button></div>
+    <div id="create-branch-error" class="alert alert-error" style="display:none"></div>
+    <div class="form-group"><label class="form-label">Branch name <span class="form-sub">*</span></label><input class="form-input" id="branch-name" placeholder="feature/my-feature" spellcheck="false"></div>
+    <div class="form-group"><label class="form-label">From <span class="form-sub">branch or commit</span></label><input class="form-input" id="branch-from" placeholder="HEAD" spellcheck="false"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('create-branch')">Cancel</button><button class="btn btn-primary" id="create-branch-btn" onclick="submitBranch()">Create branch</button></div>
+  </div>
+</div>
+
+<!-- Create Tag -->
+<div class="overlay" id="modal-create-tag">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title">New tag<button class="modal-close" onclick="closeModal('create-tag')">×</button></div>
+    <div id="create-tag-error" class="alert alert-error" style="display:none"></div>
+    <div class="form-group"><label class="form-label">Tag name <span class="form-sub">*</span></label><input class="form-input" id="tag-name" placeholder="v1.0.0" spellcheck="false"></div>
+    <div class="form-group"><label class="form-label">Message <span class="form-sub">leave blank for lightweight tag</span></label><input class="form-input" id="tag-message" placeholder="Release v1.0.0"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('create-tag')">Cancel</button><button class="btn btn-primary" id="create-tag-btn" onclick="submitTag()">Create tag</button></div>
+  </div>
+</div>
+
+<!-- Stash push -->
+<div class="overlay" id="modal-stash-push">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-title">Stash changes<button class="modal-close" onclick="closeModal('stash-push')">×</button></div>
+    <div class="form-group"><label class="form-label">Message <span class="form-sub">optional</span></label><input class="form-input" id="stash-message" placeholder="WIP: my work in progress"></div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('stash-push')">Cancel</button><button class="btn btn-primary" onclick="submitStash()">Stash</button></div>
+  </div>
+</div>
+
+<!-- Webhook -->
+<div class="overlay" id="modal-webhook">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-title">Webhooks<button class="modal-close" onclick="closeModal('webhook')">×</button></div>
+    <div id="webhook-list" style="margin-bottom:16px"></div>
+    <div style="border-top:1px solid var(--border);padding-top:14px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Add webhook</div>
+      <div id="webhook-error" class="alert alert-error" style="display:none"></div>
+      <div class="form-group"><label class="form-label">Payload URL</label><input class="form-input form-mono" id="webhook-url" placeholder="https://example.com/webhook"></div>
+      <div class="form-group"><label class="form-label">Events</label>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:4px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="wh-push" checked> push</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="wh-issue"> issues</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px"><input type="checkbox" id="wh-tag"> tags</label>
+        </div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="submitWebhook()">Add webhook</button>
+    </div>
+  </div>
+</div>
+
+<!-- Repo Settings -->
+<div class="overlay" id="modal-settings">
+  <div class="modal">
+    <div class="modal-title">Repository settings<button class="modal-close" onclick="closeModal('settings')">×</button></div>
+    <div id="settings-error" class="alert alert-error" style="display:none"></div>
+    <div class="form-group"><label class="form-label">Description</label><input class="form-input" id="settings-desc" placeholder="Short description"></div>
+    <div class="form-group"><label class="form-label">Rename</label><input class="form-input" id="settings-name" placeholder="new-name" spellcheck="false"></div>
+    <hr class="form-divider">
+    <div style="background:var(--red-dim);border:1px solid rgba(248,113,113,.2);border-radius:8px;padding:16px">
+      <div style="font-weight:600;color:var(--red);margin-bottom:6px;font-size:13px">Danger zone</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" onclick="doFork()">Fork this repo</button>
+        <button class="btn btn-ghost btn-sm" onclick="doRewriteAuthors()" title="Rewrite all commit authors to your username">Rewrite commit authors</button>
+        <button class="btn btn-danger btn-sm" onclick="closeModal('settings');confirmDelete(currentRepo)">Delete repository</button>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('settings')">Cancel</button><button class="btn btn-primary" onclick="saveSettings()">Save changes</button></div>
+  </div>
+</div>
+
+<!-- Add User -->
+<div class="overlay" id="modal-add-user">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-title">Add user<button class="modal-close" onclick="closeModal('add-user')">×</button></div>
+    <div id="add-user-error" class="alert alert-error" style="display:none"></div>
+    <div class="form-group"><label class="form-label">Username</label><input class="form-input" id="new-user-name" placeholder="username" spellcheck="false"></div>
+    <div class="form-group"><label class="form-label">Password</label><input class="form-input" id="new-user-pass" type="password" placeholder="min 6 characters"></div>
+    <div class="form-group"><label class="form-label">Role</label>
+      <select class="form-input" id="new-user-role">
+        <option value="contributor">Contributor (can push to own repos)</option>
+        <option value="viewer">Viewer (read only)</option>
+        <option value="admin">Admin (full access)</option>
+      </select>
+    </div>
+    <div class="modal-footer"><button class="btn btn-ghost" onclick="closeModal('add-user')">Cancel</button><button class="btn btn-primary" onclick="submitAddUser()">Add user</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body>
+</html>
