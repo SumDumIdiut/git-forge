@@ -8,8 +8,13 @@ const path = require('path');
 const crypto = require('crypto');
 const { spawn, execFile } = require('child_process');
 
-const app = express();
-const PORT = 3000;
+const realApp = express();
+// `app` is shadowed as a Router (not the real Express app) so every existing
+// app.get/post/patch/delete call below mounts under BASE_PATH without being
+// touched individually — see realApp.use(BASE_PATH, app) near the bottom.
+const app = express.Router();
+const BASE_PATH = (process.env.BASE_PATH || '').replace(/\/$/, '');
+const PORT = parseInt(process.env.PORT || '3000', 10);
 const REPOS_DIR = path.join(__dirname, 'repos');
 const USERS_FILE = path.join(__dirname, 'users.json');
 const SECRET_FILE = path.join(__dirname, '.forge-secret');
@@ -35,7 +40,19 @@ app.use(session({
   saveUninitialized: false,
   cookie: { maxAge: 7 * 24 * 60 * 60 * 1000, httpOnly: true }
 }));
-app.use(express.static('public', {
+
+// Inject window.__BASE_PATH__ so app.js can prefix its own fetch()/src/href
+// calls when mounted under a prefix (e.g. behind the portal at /forge).
+let _indexHtmlWithBase = null;
+app.get('/', (req, res) => {
+  if (!_indexHtmlWithBase) {
+    const html = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf-8');
+    _indexHtmlWithBase = html.replace('</head>', `<script>window.__BASE_PATH__=${JSON.stringify(BASE_PATH)};</script></head>`);
+  }
+  res.send(_indexHtmlWithBase);
+});
+
+app.use(express.static(path.join(__dirname, 'public'), {
   setHeaders(res, filePath) {
     if (filePath.endsWith('.js') || filePath.endsWith('.css')) {
       res.setHeader('Cache-Control', 'no-cache, must-revalidate');
@@ -1174,6 +1191,8 @@ app.post('/api/sync-all', requireAuth, (req, res) => {
   syncAllRepos();
 });
 
-app.listen(PORT, () => {
-  console.log(`\n  Forge is running at http://localhost:${PORT}\n`);
+realApp.use(BASE_PATH || '/', app);
+
+realApp.listen(PORT, () => {
+  console.log(`\n  Forge is running at http://localhost:${PORT}${BASE_PATH}\n`);
 });

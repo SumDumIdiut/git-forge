@@ -1,4 +1,5 @@
 // ── State ─────────────────────────────────────────────────────────────────────
+const BASE_PATH = window.__BASE_PATH__ || '';
 let currentUser = null;
 let _syncStatus = {};
 let _syncPollTimer = null;
@@ -52,7 +53,7 @@ function icon(name, cls='') { return `<span class="${cls}">${ICONS[name]||''}</s
 async function api(method, url, body) {
   const opts = { method, headers: {'Content-Type':'application/json'} };
   if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(url, opts);
+  const r = await fetch(BASE_PATH + url, opts);
   let data;
   try { data = await r.json(); } catch { throw new Error(`Server error (${r.status}) — restart the server to apply latest changes`); }
   if (!r.ok) throw new Error(data.error || 'Request failed');
@@ -117,7 +118,7 @@ function showMainApp() {
   const avatarImg = document.getElementById('user-avatar-img');
   if (avatarImg) {
     avatarImg.alt = initials;
-    avatarImg.src = `/api/avatar/${encodeURIComponent(currentUser.username)}`;
+    avatarImg.src = `${BASE_PATH}/api/avatar/${encodeURIComponent(currentUser.username)}`;
     avatarImg.style.display = 'block';
     document.getElementById('user-avatar-circle').style.display = 'none';
   }
@@ -241,7 +242,7 @@ async function renderHome() {
       return `<div class="trending-item" onclick="navigate('/${r.name}')">
         <div class="trending-row">
           <div class="trending-left">
-            <img class="gh-av gh-av-20" src="/api/avatar/${esc(owner)}" alt="${esc(owner)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <img class="gh-av gh-av-20" src="${BASE_PATH}/api/avatar/${esc(owner)}" alt="${esc(owner)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="trending-owner-av" style="display:none;background:${ownerColor(owner)}">${esc(owner.slice(0,1).toUpperCase())}</div>
             <a class="trending-name" onclick="navigate('/${r.name}');event.stopPropagation()">${esc(owner)}/<strong>${esc(r.name)}</strong></a>
             <span id="sb-${esc(r.name)}" style="flex-shrink:0">${syncBadgeHtml(r.name)}</span>
@@ -308,7 +309,7 @@ async function renderHome() {
         <!-- Left Sidebar -->
         <aside class="home-sidebar">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <img class="gh-av gh-av-32" src="/api/avatar/${esc(currentUser.username)}" alt="${esc(initials)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" onclick="navigate('/profile')" style="cursor:pointer">
+            <img class="gh-av gh-av-32" src="${BASE_PATH}/api/avatar/${esc(currentUser.username)}" alt="${esc(initials)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" onclick="navigate('/profile')" style="cursor:pointer">
             <div class="sidebar-avatar" style="display:none">${esc(initials)}</div>
             <div>
               <div class="sidebar-name" onclick="navigate('/profile')" style="cursor:pointer" title="View profile">${esc(currentUser.username)}</div>
@@ -546,7 +547,7 @@ async function renderRepo(name, subPath) {
       <div class="gh-repo-header">
         <div class="gh-repo-title-row">
           <div class="gh-repo-title">
-            <img class="gh-av gh-av-20" src="/api/avatar/${esc(owner)}" alt="${esc(ownerInit)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+            <img class="gh-av gh-av-20" src="${BASE_PATH}/api/avatar/${esc(owner)}" alt="${esc(ownerInit)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
             <div class="gh-owner-avatar" style="display:none">${esc(ownerInit)}</div>
             <span class="gh-breadcrumb-owner" onclick="navigate('/')">${esc(owner)}</span>
             <span class="gh-breadcrumb-sep">/</span>
@@ -640,7 +641,7 @@ async function renderRepo(name, subPath) {
                       <button class="clone-url-copy-btn" onclick="navigator.clipboard.writeText('git clone ${esc(cloneUrl)}');toast('Copied!')">Copy</button>
                     </div>
                     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0">
-                    <a href="/api/repos/${name}/export.zip" style="font-size:13px;color:var(--accent);display:flex;align-items:center;gap:6px;text-decoration:none">
+                    <a href="${BASE_PATH}/api/repos/${name}/export.zip" style="font-size:13px;color:var(--accent);display:flex;align-items:center;gap:6px;text-decoration:none">
                       <svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M7.25 1.75a.75.75 0 0 1 1.5 0v5.19l2.22-2.22a.75.75 0 1 1 1.06 1.06l-3.5 3.5a.75.75 0 0 1-1.06 0l-3.5-3.5a.75.75 0 0 1 1.06-1.06l2.22 2.22V1.75ZM1.5 9.25a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h9.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 12.75 13.5h-9.5A1.75 1.75 0 0 1 1.5 11.75v-2.5Z"/></svg>
                       Download ZIP
                     </a>
@@ -797,7 +798,7 @@ async function handleDrop(e, name, subPath) {
   fd.append('subPath', subPath || '');
   fd.append('message', `Upload ${files.length} file(s) via browser`);
   try {
-    const r = await fetch(`/api/repos/${name}/upload`, { method:'POST', body: fd });
+    const r = await fetch(`${BASE_PATH}/api/repos/${name}/upload`, { method:'POST', body: fd });
     const data = await r.json();
     if (!r.ok) throw new Error(data.error);
     toast(`Uploaded ${data.files.length} file(s)!`);
