@@ -1,3 +1,5 @@
+// Test commit for verifying install.sh's per-repo update detection -- safe
+// to leave, purely a comment.
 const express = require('express');
 const simpleGit = require('simple-git');
 const bcrypt = require('bcryptjs');
